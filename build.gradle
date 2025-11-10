@@ -2,3 +2,11 @@ plugins {
     id 'com.android.application' version '8.3.0' apply false
     id 'org.jetbrains.kotlin.android' version '1.9.0' apply false
 }
+
+allprojects {
+    // 念のため（settings.gradleで定義しているが、下位互換として残す）
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
