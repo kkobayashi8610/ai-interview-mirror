@@ -17,28 +17,8 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      # ★ Android SDK を手動でセットアップ
-      - name: Install Android SDK
-        run: |
-          set -euxo pipefail
-          export ANDROID_HOME="$GITHUB_WORKSPACE/android-sdk"
-          echo "ANDROID_HOME=$ANDROID_HOME" >> "$GITHUB_ENV"
-          mkdir -p "$ANDROID_HOME/cmdline-tools"
-          curl -L https://dl.google.com/android/repository/commandlinetools-linux-12266719_latest.zip -o /tmp/clt.zip
-          unzip -q /tmp/clt.zip -d "$ANDROID_HOME/cmdline-tools"
-          mv "$ANDROID_HOME/cmdline-tools/cmdline-tools" "$ANDROID_HOME/cmdline-tools/latest"
-          echo "$ANDROID_HOME/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
-          echo "$ANDROID_HOME/platform-tools" >> "$GITHUB_PATH"
 
-          # sdkmanager の動作確認とライセンス同意
-          sdkmanager --sdk_root="$ANDROID_HOME" --version
-          yes | sdkmanager --sdk_root="$ANDROID_HOME" --licenses
 
-          # ★ 個別に 3 つのパッケージを指定（改行ではなく引数ごと）
-          sdkmanager --sdk_root="$ANDROID_HOME" \
-            "platform-tools" \
-            "build-tools;34.0.0" \
-            "platforms;android-34"
 
       # gradle wrapper が無ければ作る
       - name: Ensure Gradle wrapper
