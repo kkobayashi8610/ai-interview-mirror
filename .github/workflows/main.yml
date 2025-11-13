@@ -1,9 +1,7 @@
 name: Build Android APK
 
 on:
-  workflow_dispatch: {}
-  push:
-    branches: [ "main" ]
+  workflow_dispatch: {}   # Actions 画面から手動実行
 
 jobs:
   build:
@@ -19,29 +17,49 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      # Android SDK を公式アクションでセットアップ（これが一番安定）
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-        with:
-          packages: |
-            platform-tools
-            build-tools;34.0.0
-            platforms;android-34
-
-      # gradle wrapper がリポジトリに無いので生成する
-      - name: Install Gradle to generate wrapper
+      # ★ Android SDK を手動でセットアップ
+      - name: Install Android SDK
         run: |
-          sudo apt-get update
-          sudo apt-get install -y gradle
-          gradle --version
-          gradle wrapper --gradle-version 8.7
+          set -euxo pipefail
+          export ANDROID_HOME="$GITHUB_WORKSPACE/android-sdk"
+          echo "ANDROID_HOME=$ANDROID_HOME" >> "$GITHUB_ENV"
+          mkdir -p "$ANDROID_HOME/cmdline-tools"
+          curl -L https://dl.google.com/android/repository/commandlinetools-linux-12266719_latest.zip -o /tmp/clt.zip
+          unzip -q /tmp/clt.zip -d "$ANDROID_HOME/cmdline-tools"
+          mv "$ANDROID_HOME/cmdline-tools/cmdline-tools" "$ANDROID_HOME/cmdline-tools/latest"
+          echo "$ANDROID_HOME/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
+          echo "$ANDROID_HOME/platform-tools" >> "$GITHUB_PATH"
 
-      # ビルド
+          # sdkmanager の動作確認とライセンス同意
+          sdkmanager --sdk_root="$ANDROID_HOME" --version
+          yes | sdkmanager --sdk_root="$ANDROID_HOME" --licenses
+
+          # ★ 個別に 3 つのパッケージを指定（改行ではなく引数ごと）
+          sdkmanager --sdk_root="$ANDROID_HOME" \
+            "platform-tools" \
+            "build-tools;34.0.0" \
+            "platforms;android-34"
+
+      # gradle wrapper が無ければ作る
+      - name: Ensure Gradle wrapper
+        run: |
+          set -euxo pipefail
+          if [ ! -f ./gradlew ]; then
+            sudo apt-get update
+            sudo apt-get install -y gradle
+            gradle wrapper --gradle-version 8.7
+          fi
+          chmod +x ./gradlew
+
+      # ビルド（詳細ログ付き）
       - name: Build debug APK
-        run: ./gradlew --no-daemon assembleDebug
+        uses: gradle/gradle-build-action@v3
+        with:
+          arguments: --no-daemon --stacktrace --info assembleDebug
 
-      # 生成物をダウンロード可能に
+      # 成功した場合だけ APK をアップロード
       - name: Upload APK artifact
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: ai-interview-mirror-apk
