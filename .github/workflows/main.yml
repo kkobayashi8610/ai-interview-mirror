@@ -19,33 +19,32 @@ jobs:
 
       # ★ Android SDK を手動でセットアップ
       - name: Install Android SDK
-        run: |
           set -euxo pipefail
           export ANDROID_HOME="$GITHUB_WORKSPACE/android-sdk"
           echo "ANDROID_HOME=$ANDROID_HOME" >> "$GITHUB_ENV"
           mkdir -p "$ANDROID_HOME/cmdline-tools"
 
-          # コマンドラインツールをダウンロード＆展開
+          # Download command line tools
           curl -L https://dl.google.com/android/repository/commandlinetools-linux-12266719_latest.zip -o /tmp/clt.zip
           unzip -q /tmp/clt.zip -d "$ANDROID_HOME/cmdline-tools"
           mv "$ANDROID_HOME/cmdline-tools/cmdline-tools" "$ANDROID_HOME/cmdline-tools/latest"
 
-          # 以降のステップ用 PATH（おまけ）
+          # PATH
           echo "$ANDROID_HOME/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
           echo "$ANDROID_HOME/platform-tools" >> "$GITHUB_PATH"
 
-          # ★ここで sdkmanager のフルパスを変数に入れる
+          # sdkmanager 実体パス
           SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
 
-          # 動作確認＆ライセンス同意
-          "$SDKMANAGER" --sdk_root="$ANDROID_HOME" --version
-          yes | "$SDKMANAGER" --sdk_root="$ANDROID_HOME" --licenses
+          # ★ ライセンス自動承認のための回答ファイルを作る
+          mkdir -p "$ANDROID_HOME/licenses"
+          echo "24333f8a63b6825ea9c5514f83c2829b004d1fee" > "$ANDROID_HOME/licenses/android-sdk-license"
+          echo "84831b9409646a918e30573bab4c9c91346d8abd" > "$ANDROID_HOME/licenses/android-sdk-preview-license"
 
-          # 必要なパッケージを個別に指定してインストール
-          "$SDKMANAGER" --sdk_root="$ANDROID_HOME" \
-            "platform-tools" \
-            "build-tools;34.0.0" \
-            "platforms;android-34"
+          # Install required packages
+          "$SDKMANAGER" --sdk_root="$ANDROID_HOME" "platform-tools"
+          "$SDKMANAGER" --sdk_root="$ANDROID_HOME" "build-tools;34.0.0"
+          "$SDKMANAGER" --sdk_root="$ANDROID_HOME" "platforms;android-34"
 
       # gradle wrapper が無ければ作る
       - name: Ensure Gradle wrapper
