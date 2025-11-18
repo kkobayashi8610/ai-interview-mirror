@@ -24,18 +24,25 @@ jobs:
           export ANDROID_HOME="$GITHUB_WORKSPACE/android-sdk"
           echo "ANDROID_HOME=$ANDROID_HOME" >> "$GITHUB_ENV"
           mkdir -p "$ANDROID_HOME/cmdline-tools"
+
+          # コマンドラインツールをダウンロード＆展開
           curl -L https://dl.google.com/android/repository/commandlinetools-linux-12266719_latest.zip -o /tmp/clt.zip
           unzip -q /tmp/clt.zip -d "$ANDROID_HOME/cmdline-tools"
           mv "$ANDROID_HOME/cmdline-tools/cmdline-tools" "$ANDROID_HOME/cmdline-tools/latest"
+
+          # 以降のステップ用 PATH（おまけ）
           echo "$ANDROID_HOME/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
           echo "$ANDROID_HOME/platform-tools" >> "$GITHUB_PATH"
 
-          # sdkmanager の動作確認とライセンス同意
-          sdkmanager --sdk_root="$ANDROID_HOME" --version
-          yes | sdkmanager --sdk_root="$ANDROID_HOME" --licenses
+          # ★ここで sdkmanager のフルパスを変数に入れる
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
 
-          # ★ 個別に 3 つのパッケージを指定（改行ではなく引数ごと）
-          sdkmanager --sdk_root="$ANDROID_HOME" \
+          # 動作確認＆ライセンス同意
+          "$SDKMANAGER" --sdk_root="$ANDROID_HOME" --version
+          yes | "$SDKMANAGER" --sdk_root="$ANDROID_HOME" --licenses
+
+          # 必要なパッケージを個別に指定してインストール
+          "$SDKMANAGER" --sdk_root="$ANDROID_HOME" \
             "platform-tools" \
             "build-tools;34.0.0" \
             "platforms;android-34"
