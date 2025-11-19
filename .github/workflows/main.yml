@@ -9,6 +9,7 @@ jobs:
 
     env:
       ANDROID_HOME: ${{ github.workspace }}/android-sdk
+      ANDROID_SDK_ROOT: ${{ github.workspace }}/android-sdk
 
     steps:
       - name: Checkout
