@@ -5,12 +5,12 @@ plugins {
 
 android {
     namespace 'jp.mec.aiinterviewmirror'
-    compileSdk 33
+    compileSdk 34
 
     defaultConfig {
         applicationId "jp.mec.aiinterviewmirror"
         minSdk 28
-        targetSdk 33
+        targetSdk 34
         versionCode 1
         versionName "1.0"
     }
