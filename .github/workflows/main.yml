@@ -1,11 +1,14 @@
 name: Build Android APK
 
 on:
-  workflow_dispatch: {}   # Actions 画面から手動実行
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
+    env:
+      ANDROID_HOME: ${{ github.workspace }}/android-sdk
 
     steps:
       - name: Checkout
@@ -17,55 +20,46 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      # Android SDK を手動セットアップ
+      # Android SDK を手動セットアップ（API 33）
       - name: Install Android SDK
         run: |
           set -euxo pipefail
-          export ANDROID_HOME="$GITHUB_WORKSPACE/android-sdk"
-          echo "ANDROID_HOME=$ANDROID_HOME" >> "$GITHUB_ENV"
           mkdir -p "$ANDROID_HOME/cmdline-tools"
 
-          # コマンドラインツールをダウンロード＆展開
+          # コマンドラインツールダウンロード
           curl -L https://dl.google.com/android/repository/commandlinetools-linux-12266719_latest.zip -o /tmp/clt.zip
           unzip -q /tmp/clt.zip -d "$ANDROID_HOME/cmdline-tools"
           mv "$ANDROID_HOME/cmdline-tools/cmdline-tools" "$ANDROID_HOME/cmdline-tools/latest"
 
-          # sdkmanager のフルパス
+          # sdkmanager のパス
           SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
 
-          # ライセンスを事前に同意した状態にする
+          # ライセンス自動同意
           mkdir -p "$ANDROID_HOME/licenses"
           echo "24333f8a63b6825ea9c5514f83c2829b004d1fee" > "$ANDROID_HOME/licenses/android-sdk-license"
           echo "84831b9409646a918e30573bab4c9c91346d8abd" > "$ANDROID_HOME/licenses/android-sdk-preview-license"
 
-          # 必要なパッケージをインストール
-　　"$SDKMANAGER" --sdk_root="$ANDROID_HOME" \
-  "platform-tools" \
-  "build-tools;33.0.2" \
-  "platforms;android-33"
+          # 必要なコンポーネントをインストール（API 33）
+          "$SDKMANAGER" --sdk_root="$ANDROID_HOME" \
+            "platform-tools" \
+            "build-tools;33.0.2" \
+            "platforms;android-33"
 
-      # gradlew がなければ作成
+      # Gradle 8.7 で wrapper を生成
       - name: Ensure Gradle wrapper
         run: |
           set -euxo pipefail
           if [ ! -f ./gradlew ]; then
-            # 古いapt版Gradleは使わず、公式のGradle 8.7を取得して使う
             curl -sL https://services.gradle.org/distributions/gradle-8.7-bin.zip -o /tmp/gradle-8.7-bin.zip
             unzip -q /tmp/gradle-8.7-bin.zip -d /tmp/gradle-8.7
             /tmp/gradle-8.7/gradle-8.7/bin/gradle wrapper --gradle-version 8.7
           fi
           chmod +x ./gradlew
-      
 
-      # APK ビルド
       - name: Build debug APK
-        uses: gradle/gradle-build-action@v3
-        with:
-          arguments: --no-daemon assembleDebug
+        run: ./gradlew --no-daemon assembleDebug
 
-      # 成功時のみ APK を成果物としてアップロード
       - name: Upload APK artifact
-        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: ai-interview-mirror-apk
